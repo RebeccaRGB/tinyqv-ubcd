@@ -17,6 +17,7 @@ module tqvp_rebeccargb_universal_decoder (
 );
 
     reg [7:0] data;
+    reg [3:0] datax;
     reg rbi; // ripple blanking input
     reg lt;  // lamp test
     reg bi;  // blanking input
@@ -67,7 +68,8 @@ module tqvp_rebeccargb_universal_decoder (
         .Qf(k_f), .Qg(k_g), .Qh(k_h), .RBO(k_rbo), .V(k_v)
     );
 
-    wire [7:0] pt = ((iv | {8{~lt}}) & {8{bi}}) ^ {8{~al}};  // pass-through
+    wire [7:0] pt = ((iv | {8{~lt}}) & {8{bi}}) ^ {8{~al}};     // pass-through
+    wire [3:0] dp = ((datax | {4{~lt}}) & {4{bi}}) ^ {4{~al}};  // decimal point
 
     wire [7:0] ov = (
         // output value
@@ -77,16 +79,16 @@ module tqvp_rebeccargb_universal_decoder (
                 mode[0] ? pt : {k_h, k_g, k_f, k_e, k_d, k_c, k_b, k_a}
             ) : (
                 // Cistercian
-                mode[0] ? {3'b000, c_y2, c_x2, c_w2, c_v2, c_u2}
-                        : {3'b000, c_y1, c_x1, c_w1, c_v1, c_u1}
+                mode[0] ? {dp[2:0], c_y2, c_x2, c_w2, c_v2, c_u2}
+                        : {dp[2:0], c_y1, c_x1, c_w1, c_v1, c_u1}
             )
         ) : (
             mode[1] ? (
                 // ASCII
-                mode[0] ? pt : {pt[7], a_g, a_f, a_e, a_d, a_c, a_b, a_a}
+                mode[0] ? pt : {dp[0], a_g, a_f, a_e, a_d, a_c, a_b, a_a}
             ) : (
                 // BCD
-                {1'b0, b_g, b_f, b_e, b_d, b_c, b_b, b_a}
+                {(mode[0] ? dp[1] : dp[0]), b_g, b_f, b_e, b_d, b_c, b_b, b_a}
             )
         )
     );
@@ -104,7 +106,7 @@ module tqvp_rebeccargb_universal_decoder (
         ) : (
             mode[1] ? (
                 // ASCII
-                {(((iv[6:0] != 0) | rbi | ~lt) & bi), iv[7], 5'd0, a_ltr}
+                {(((iv[6:0] != 0) | rbi | ~lt) & bi), iv[7], a_ltr, 5'd0}
             ) : (
                 // BCD
                 {b_rbo, (bcd >= 4'd10), 6'd0}
@@ -115,6 +117,7 @@ module tqvp_rebeccargb_universal_decoder (
     always @(posedge clk) begin
         if (!rst_n) begin
             data <= 0;
+            datax <= 0;
             rbi <= 1; // ripple blanking input
             lt <= 1;  // lamp test
             bi <= 1;  // blanking input
@@ -134,10 +137,11 @@ module tqvp_rebeccargb_universal_decoder (
             if (address == 4'h0) begin
                 data <= data_in;
             end else if (address == 4'h1) begin
+                datax <= data_in[3:0];
                 rbi <= data_in[7];
-                lt <= data_in[2];
-                bi <= data_in[1];
-                al <= data_in[0];
+                lt <= data_in[6];
+                bi <= data_in[5];
+                al <= data_in[4];
             end else if (address == 4'h2) begin
                 x9 <= data_in[7];
                 x7 <= data_in[6];
@@ -160,11 +164,13 @@ module tqvp_rebeccargb_universal_decoder (
 
     assign data_out = (
         (address == 4'h0) ? data :
-        (address == 4'h1) ? {rbi, 4'b1111, lt, bi, al} :
+        (address == 4'h1) ? {rbi, lt, bi, al, datax} :
         (address == 4'h2) ? {x9, x7, x6, lc, fs, v2, v1, v0} :
         (address == 4'h3) ? {le, oe, 3'b000, mode} :
         (address == 4'h4) ? ov :
         (address == 4'h5) ? status :
+        (address == 4'h6) ? iv :
+        (address == 4'h7) ? ui_in :
         8'd0
     );
 

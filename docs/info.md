@@ -30,7 +30,7 @@ This peripheral can be used to drive a variety of segmented LED displays using a
 
 This mode displays a decimal digit in BCD on a standard seven segment display. There are registers that affect the display of the digits 6, 7, and 9, and eight different options for handling out-of-range values. These registers allow this peripheral to match the behavior of just about any BCD to seven segment decoder, making it *universal*.
 
-![](ubcd.svg)
+![](23_ubcd.svg)
 
 The registers used in this mode are:
 
@@ -48,9 +48,9 @@ The registers used in this mode are:
 
 This mode displays an ASCII character on a standard seven segment display. Like with the BCD mode, there are registers that affect the display of the digits 6, 7, and 9. There are also two choices of “font” and the option to display lowercase letters as uppercase or as lowercase.
 
-![](ascii-f0.svg)
+![](23_ascii_f0.svg)
 
-![](ascii-f1.svg)
+![](23_ascii_f1.svg)
 
 The registers used in this mode are:
 
@@ -67,11 +67,11 @@ The registers used in this mode are:
 
 This mode displays a decimal digit in BCD on one quarter of the segmented display for [Cistercian numerals](https://en.wikipedia.org/wiki/Cistercian_numerals) shown below.
 
-![](cistercian-display.svg)
+![](23_cistercian_display.svg)
 
 The patterns produced for each input value are shown below.
 
-![](cistercian-decoder.svg)
+![](23_cistercian_decoder.svg)
 
 The registers used in this mode are:
 
@@ -83,11 +83,11 @@ The registers used in this mode are:
 
 This mode displays a *vigesimal* (base 20) digit in BCV (binary-coded vigesimal) on the segmented display for [Kaktovik numerals](https://en.wikipedia.org/wiki/Kaktovik_numerals) shown below.
 
-![](kaktovik-display.svg)
+![](23_kaktovik_display.svg)
 
 The patterns produced for each input value are shown below.
 
-![](kaktovik-decoder.svg)
+![](23_kaktovik_decoder.svg)
 
 The registers used in this mode are:
 
@@ -104,11 +104,11 @@ The registers used in this mode are:
 | Address | Name  | Access | Description                                                         |
 |---------|-------|--------|---------------------------------------------------------------------|
 | 0x00    | DATA  | R/W    | The value to display in BCD, ASCII, or BCV format.
-| 0x01    | DCR   | R/W    | Display control register. Contains **/AL**, **/BI**, **/LT**, **/VBI**, **/RBI**.
-| 0x02    | VAR   | R/W    | Variant register. Controls the display of digits, letters, and out-of-range values.
+| 0x01    | DCR   | R/W    | Display control register. Contains **/AL**, **/BI**, **/LT**, **/RBI**.
+| 0x02    | VCR   | R/W    | Variant control register. Controls the display of digits, letters, and out-of-range values.
 | 0x03    | PCR   | R/W    | Peripheral control register. Selects the mode of operation.
 | 0x04    | OUT   | R      | Output register. Returns the state of the segmented display.
-| 0x05    | SR    | R      | Status register. Contains **/LTR**, **V**, **/RBO**.
+| 0x05    | STAT  | R      | Status register. Contains **/LTR**, **V**, **/RBO**.
 
 ### Display control register format
 
@@ -116,9 +116,62 @@ Used for address 0x01.
 
 | Bit | Mask | Name | Description |
 |-----|------|------|-------------|
-| 0   | 0x01 | /AL  | Active low. If 1, outputs will be HIGH when lit. If 0, outputs will be LOW when lit.
-| 1   | 0x02 | /BI  | Blanking input. If 0, all segments will be blank regardless of other inputs, including **/LT**.
-| 2   | 0x04 | /LT  | Lamp test. When **/BI** is 1 and **/LT** is 0, all segments will be lit.
+| 0   | 0x01 | dp0  | Decimal point for BCD units digit or ASCII.
+| 1   | 0x02 | dp1  | Decimal point for BCD tens digit.
+| 4   | 0x10 | /AL  | Active low. If 1, outputs will be HIGH when lit. If 0, outputs will be LOW when lit.
+| 5   | 0x20 | /BI  | Blanking input. If 0, all segments will be blank regardless of other inputs, including **/LT**.
+| 6   | 0x40 | /LT  | Lamp test. When **/BI** is 1 and **/LT** is 0, all segments will be lit.
+| 7   | 0x80 | /RBI | Ripple blanking input. If the input value is zero and **/RBI** is 0, all segments will be blank.
+
+### Variant control register format
+
+Used for address 0x02.
+
+| Bit | Mask | Name | Description |
+|-----|------|------|-------------|
+| 0   | 0x01 | V0   | Selects the output when the BCD value is out of range.
+| 1   | 0x02 | V1   | Selects the output when the BCD value is out of range.
+| 2   | 0x04 | V2   | Selects the output when the BCD value is out of range.
+| 3   | 0x08 | FS   | Font select. Selects one of two “fonts” for ASCII input.
+| 4   | 0x10 | LC   | Lower case. If 0, lowercase letters will appear as uppercase.
+| 5   | 0x20 | X6   | When 1, the extra segment **a** will be lit on the digit 6.
+| 6   | 0x40 | X7   | When 1, the extra segment **f** will be lit on the digit 7.
+| 7   | 0x80 | X9   | When 1, the extra segment **d** will be lit on the digit 9.
+
+### Peripheral control register format
+
+Used for address 0x03.
+
+| Bit | Mask | Name | Description |
+|-----|------|------|-------------|
+| 0-2 | 0x07 | MODE | Selects the mode of operation.
+| 6   | 0x40 | /OE  | Output enable. If 0, output will be sent to `uo_out`. If 1, output will only be available through address 0x04.
+| 7   | 0x80 | /LE  | Latch enable. If 0, input will be taken from the data register. If 1, input will be taken from `ui_in`.
+
+The modes of operation are:
+
+| Mode | Description |
+|------|-------------|
+| 0    | BCD mode, units digit (low nibble of data register).
+| 1    | BCD mode, tens digit (high nibble of data register).
+| 2    | ASCII mode.
+| 3    | Passthrough mode.
+| 4    | Cistercian mode, units digit (low nibble of data register).
+| 5    | Cistercian mode, tens digit (high nibble of data register).
+| 6    | Kaktovik mode.
+| 7    | Passthrough mode.
+
+In passthrough mode, the individual bits of the data register correspond directly to the segments of the display.
+
+### Status register format
+
+Used for address 0x05.
+
+| Bit | Mask | Name | Description |
+|-----|------|------|-------------|
+| 5   | 0x20 | /LTR | Letter. 0 when ASCII input is a letter (A...Z or a...z).
+| 6   | 0x40 | V    | Overflow. 1 when input value is out of range.
+| 7   | 0x80 | /RBO | Ripple blanking output. 1 when input value is nonzero or **/RBI** is 1.
 
 ## External hardware
 
@@ -126,8 +179,8 @@ For the BCD and ASCII modes, a standard seven-segment display is used.
 
 For the Cistercian mode, a segmented display like the one below is used. There are design files for such a display [here](https://github.com/RebeccaRGB/buck/tree/main/cistercian-display).
 
-![](cistercian-display.svg)
+![](23_cistercian_display.svg)
 
 For the Kaktovik mode, a segmented display like the one below is used. There are design files for such a display [here](https://github.com/RebeccaRGB/buck/tree/main/kaktovik-display).
 
-![](kaktovik-display.svg)
+![](23_kaktovik_display.svg)

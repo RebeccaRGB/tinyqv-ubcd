@@ -34,7 +34,9 @@ async def test_project(dut):
 
     # Test register write and read back
     await tqv.write_reg(0, 20)
+    await tqv.write_reg(1, 30)
     assert await tqv.read_reg(0) == 20
+    assert await tqv.read_reg(1) == 30
 
     # Keep testing the module by changing the input values, waiting for
     # one or more clock cycles, and asserting the expected output values.
