@@ -171,7 +171,7 @@ module tqvp_rebeccargb_universal_decoder (
         (address == 4'h5) ? {status, dp} :
         (address == 4'h6) ? iv :
         (address == 4'h7) ? ui_in :
-        8'h00
+        8'hFF
     );
 
 endmodule
