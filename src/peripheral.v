@@ -93,23 +93,23 @@ module tqvp_rebeccargb_universal_decoder (
         )
     );
 
-    wire [7:0] status = (
+    wire [3:0] status = (
         // status register
         mode[2] ? (
             mode[1] ? (
                 // Kaktovik
-                {k_rbo, k_v, 6'd0}
+                {k_rbo, k_v, 2'b00}
             ) : (
                 // Cistercian
-                {(((bcd != 0) | rbi | ~lt) & bi), (bcd >= 4'd10), 6'd0}
+                {(((bcd != 0) | rbi | ~lt) & bi), (bcd >= 4'd10), 2'b00}
             )
         ) : (
             mode[1] ? (
                 // ASCII
-                {(((iv[6:0] != 0) | rbi | ~lt) & bi), iv[7], a_ltr, 5'd0}
+                {(((iv[6:0] != 0) | rbi | ~lt) & bi), iv[7], a_ltr, 1'b0}
             ) : (
                 // BCD
-                {b_rbo, (bcd >= 4'd10), 6'd0}
+                {b_rbo, (bcd >= 4'd10), 2'b00}
             )
         )
     );
@@ -168,7 +168,7 @@ module tqvp_rebeccargb_universal_decoder (
         (address == 4'h2) ? {x9, x7, x6, lc, fs, v2, v1, v0} :
         (address == 4'h3) ? {le, oe, 3'b000, mode} :
         (address == 4'h4) ? ov :
-        (address == 4'h5) ? status :
+        (address == 4'h5) ? {status, dp} :
         (address == 4'h6) ? iv :
         (address == 4'h7) ? ui_in :
         8'd0
