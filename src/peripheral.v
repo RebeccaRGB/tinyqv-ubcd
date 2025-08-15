@@ -160,7 +160,7 @@ module tqvp_rebeccargb_universal_decoder (
     end
 
     // All output pins must be assigned. If not used, assign to 0.
-    assign uo_out = (oe ? 8'd0 : ov);
+    assign uo_out = (oe ? 8'h00 : ov);
 
     assign data_out = (
         (address == 4'h0) ? data :
@@ -171,7 +171,7 @@ module tqvp_rebeccargb_universal_decoder (
         (address == 4'h5) ? {status, dp} :
         (address == 4'h6) ? iv :
         (address == 4'h7) ? ui_in :
-        8'd0
+        8'h00
     );
 
 endmodule
